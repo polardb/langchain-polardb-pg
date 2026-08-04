@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langchain-polardb-pg"
+version = "0.1.0"
+description = "LangChain integration for PolarDB for PostgreSQL"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [
+    {name = "Alibaba Cloud PolarDB Team"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "langchain-postgres>=0.0.13",
+    "langchain-core>=0.3.0",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/polardb/langchain-polardb-pg"
+Repository = "https://github.com/polardb/langchain-polardb-pg"
+Documentation = "https://github.com/polardb/langchain-polardb-pg#readme"
+Changelog = "https://github.com/polardb/langchain-polardb-pg/blob/main/CHANGELOG.md"
+Issues = "https://github.com/polardb/langchain-polardb-pg/issues"
+
+[project.optional-dependencies]
+cloud = [
+    "alibabacloud-polardb20170801>=6.0",
+    "alibabacloud-tea-openapi>=0.3",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
