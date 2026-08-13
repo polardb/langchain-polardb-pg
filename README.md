@@ -1,5 +1,10 @@
 # langchain-polardb-pg
 
+[![CI](https://github.com/polardb/langchain-polardb-pg/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/polardb/langchain-polardb-pg/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/langchain-polardb-pg.svg)](https://pypi.org/project/langchain-polardb-pg/)
+[![Python versions](https://img.shields.io/pypi/pyversions/langchain-polardb-pg.svg)](https://pypi.org/project/langchain-polardb-pg/)
+[![License](https://img.shields.io/pypi/l/langchain-polardb-pg.svg)](LICENSE)
+
 LangChain integration for **Alibaba Cloud PolarDB for PostgreSQL** — providing in-database embeddings, vector store, and model management powered by the `polar_ai` extension.
 
 ## Features
@@ -43,7 +48,8 @@ engine = PolarDBPGEngine.from_instance(
 embeddings = PolarDBPGEmbeddings.create_sync(engine)
 
 # 3. Initialize vector store table
-engine.init_vectorstore_table("my_docs", vector_size=1536)
+vector_size = len(embeddings.embed_query("dimension probe"))
+engine.init_vectorstore_table("my_docs", vector_size=vector_size)
 
 # 4. Create vector store
 store = PolarDBPGVector.create_sync(engine, embeddings, table_name="my_docs")
@@ -117,10 +123,36 @@ engine = PolarDBPGEngine.from_connection_string(
 engine = PolarDBPGEngine.from_engine(existing_async_engine)
 ```
 
+## Environment Variables
+
+`from_instance()` can read Alibaba Cloud credentials from environment
+variables when they are not passed explicitly:
+
+```bash
+export ALIBABA_CLOUD_ACCESS_KEY_ID="your-ak"
+export ALIBABA_CLOUD_ACCESS_KEY_SECRET="your-sk"
+export POLARDB_REGION="cn-hangzhou"  # optional
+```
+
+The integration tests and examples use these variables:
+
+```bash
+export POLARDB_CLUSTER_ID="pc-xxxxx"
+export POLARDB_DATABASE="ai_test"
+export POLARDB_USER="your_user"
+export POLARDB_PASSWORD="your_password"
+export POLARDB_NETWORK_TYPE="Public"  # or "Private"
+export ALIBABA_CLOUD_ACCESS_KEY_ID="your-ak"
+export ALIBABA_CLOUD_ACCESS_KEY_SECRET="your-sk"
+export DASHSCOPE_API_KEY="your-dashscope-key"  # optional for ai_text_embedding mode
+```
+
 ## Requirements
 
 - Python >= 3.9
-- PolarDB for PostgreSQL with `polar_ai` extension
+- PolarDB for PostgreSQL with the `polar_ai` extension
+- A reachable PolarDB endpoint for the selected network type (`Public` or `Private`)
+- Alibaba Cloud OpenAPI credentials when using `from_instance()` auto-discovery
 - Dependencies: `langchain-postgres`, `langchain-core`, `sqlalchemy[asyncio]`, `asyncpg`
 
 ## Development
