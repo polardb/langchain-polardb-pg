@@ -113,7 +113,9 @@ class TestPolarDBPGEngineFromInstance:
         env_backup_id = os.environ.pop("ALIBABA_CLOUD_ACCESS_KEY_ID", None)
         env_backup_secret = os.environ.pop("ALIBABA_CLOUD_ACCESS_KEY_SECRET", None)
         try:
-            with pytest.raises(ValueError, match="Alibaba Cloud credentials are required"):
+            with pytest.raises(
+                ValueError, match="Alibaba Cloud credentials are required"
+            ):
                 PolarDBPGEngine.from_instance(
                     cluster_id="pc-bp1234567890",
                     database="mydb",
@@ -232,9 +234,7 @@ class TestPolarDBPGEngineClusterAttributeCaching:
 
     @patch("langchain_polardb_pg.engine.resolve_polardb_endpoint")
     @patch("langchain_polardb_pg.engine.describe_polardb_cluster_attribute")
-    def test_from_instance_caches_cluster_attribute(
-        self, mock_describe, mock_resolve
-    ):
+    def test_from_instance_caches_cluster_attribute(self, mock_describe, mock_resolve):
         from langchain_polardb_pg.utils.cloud_api import PolarDBEndpointInfo
 
         mock_describe.return_value = _make_cluster_attribute()

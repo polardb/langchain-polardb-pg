@@ -8,12 +8,12 @@ Requires a live PolarDB instance. Set environment variables:
     ALIBABA_CLOUD_ACCESS_KEY_ID, ALIBABA_CLOUD_ACCESS_KEY_SECRET
 
 Run with:
-    PYTHONPATH=src python -m pytest tests/test_standard_test_suite.py -v
+    python -m pytest tests/integration_tests/test_vectorstore_standard.py -v
 """
 
 import os
 import uuid
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 from langchain_core.vectorstores import VectorStore
@@ -26,12 +26,21 @@ from langchain_polardb_pg.model_manager import PolarDBPGModelManager
 from langchain_polardb_pg.vectorstores import PolarDBPGVector
 
 DEFAULT_TABLE = "test_std_" + uuid.uuid4().hex[:8]
-
-# Skip all tests if env vars are not set
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("POLARDB_CLUSTER_ID"),
-    reason="POLARDB_CLUSTER_ID not set, skipping standard test suite",
+REQUIRED_ENV_VARS = (
+    "POLARDB_CLUSTER_ID",
+    "POLARDB_USER",
+    "POLARDB_PASSWORD",
+    "ALIBABA_CLOUD_ACCESS_KEY_ID",
+    "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
 )
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        any(not os.environ.get(name) for name in REQUIRED_ENV_VARS),
+        reason="PolarDB integration credentials are not fully configured",
+    ),
+]
 
 
 def _get_engine() -> PolarDBPGEngine:
@@ -57,9 +66,7 @@ class TestStandardSuite(VectorStoreIntegrationTests):
         engine = _get_engine()
 
         # Setup embeddings with token
-        manager = PolarDBPGModelManager.create_sync(
-            engine, auto_create_extension=True
-        )
+        manager = PolarDBPGModelManager.create_sync(engine, auto_create_extension=True)
         mode = PolarDBPGEmbeddings._resolve_mode(engine)
         model_name = PolarDBPGEmbeddings._default_model_for_mode(mode)
 

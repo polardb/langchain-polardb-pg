@@ -7,20 +7,21 @@ Thank you for your interest in contributing! This document provides guidelines f
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/<OWNER>/<REPO>.git
+git clone https://github.com/polardb/langchain-polardb-pg.git
 cd langchain-polardb-pg
 ```
 
 2. Install development dependencies:
 
 ```bash
-pip install -e ".[dev,cloud]"
+python -m pip install -U pip
+python -m pip install -e ".[dev,cloud]"
 ```
 
 3. Run tests:
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q
+make test
 ```
 
 ## Code Style
@@ -31,8 +32,8 @@ PYTHONPATH=src python -m pytest tests/ -q
 - Use `ruff` for linting and formatting:
 
 ```bash
-ruff check src/ tests/
-ruff format src/ tests/
+make lint
+make format-check
 ```
 
 ## Project Structure
@@ -54,15 +55,18 @@ src/langchain_polardb_pg/
 
 ### Unit Tests
 
-Unit tests mock all database interactions and can run without a live instance:
+Unit tests live under `tests/unit_tests` and mock all database interactions.
+They can run without a live PolarDB instance:
 
 ```bash
-PYTHONPATH=src python -m pytest tests/ -q
+make test
 ```
 
-### End-to-End Tests
+### LangChain Standard Integration Tests
 
-E2E tests require a live PolarDB instance. They are **not** part of the standard test suite and are excluded from CI. To run them locally:
+LangChain standard tests live under `tests/integration_tests` and require a
+live PolarDB instance. If the required environment variables are not set, these
+tests skip automatically.
 
 1. Set environment variables:
 
@@ -71,11 +75,27 @@ export POLARDB_CLUSTER_ID="pc-xxxxx"
 export POLARDB_DATABASE="ai_test"
 export POLARDB_USER="your_user"
 export POLARDB_PASSWORD="your_password"
+export POLARDB_NETWORK_TYPE="Public"
 export ALIBABA_CLOUD_ACCESS_KEY_ID="your_ak"
 export ALIBABA_CLOUD_ACCESS_KEY_SECRET="your_sk"
+export DASHSCOPE_API_KEY="your_dashscope_key"
 ```
 
-2. Run e2e scripts directly.
+2. Run the standard tests:
+
+```bash
+make integration-test
+```
+
+### Distribution Checks
+
+Before publishing a release, verify that the package builds and that its
+metadata passes PyPI checks:
+
+```bash
+make build
+make check-dist
+```
 
 ## Pull Request Guidelines
 

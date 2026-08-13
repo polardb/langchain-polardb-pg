@@ -61,7 +61,9 @@ class TestGetCredentials:
         env_backup_id = os.environ.pop("ALIBABA_CLOUD_ACCESS_KEY_ID", None)
         env_backup_secret = os.environ.pop("ALIBABA_CLOUD_ACCESS_KEY_SECRET", None)
         try:
-            with pytest.raises(ValueError, match="Alibaba Cloud credentials are required"):
+            with pytest.raises(
+                ValueError, match="Alibaba Cloud credentials are required"
+            ):
                 _get_credentials()
         finally:
             if env_backup_id:
@@ -73,7 +75,9 @@ class TestGetCredentials:
         env_backup_id = os.environ.pop("ALIBABA_CLOUD_ACCESS_KEY_ID", None)
         env_backup_secret = os.environ.pop("ALIBABA_CLOUD_ACCESS_KEY_SECRET", None)
         try:
-            with pytest.raises(ValueError, match="Alibaba Cloud credentials are required"):
+            with pytest.raises(
+                ValueError, match="Alibaba Cloud credentials are required"
+            ):
                 _get_credentials(access_key_id="only_id")
         finally:
             if env_backup_id:

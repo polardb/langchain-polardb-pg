@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from langchain_polardb_pg.model_manager import PolarDBPGModel, PolarDBPGModelManager
+from tests.unit_tests.helpers import run_as_sync_raising, run_as_sync_returning
 
 
 class TestPolarDBPGModel:
@@ -75,10 +76,14 @@ class TestPolarDBPGModelManagerConstruction:
 class TestPolarDBPGModelManagerCreateSync:
     """Tests for PolarDBPGModelManager.create_sync()."""
 
-    @patch.object(PolarDBPGModelManager, "_PolarDBPGModelManager__avalidate", new_callable=AsyncMock)
+    @patch.object(
+        PolarDBPGModelManager,
+        "_PolarDBPGModelManager__avalidate",
+        new_callable=AsyncMock,
+    )
     def test_create_sync_validates_extension(self, mock_validate):
         mock_engine = MagicMock()
-        mock_engine._run_as_sync = MagicMock(return_value=None)
+        mock_engine._run_as_sync = run_as_sync_returning(None)
 
         manager = PolarDBPGModelManager.create_sync(mock_engine)
         assert manager is not None
@@ -86,8 +91,8 @@ class TestPolarDBPGModelManagerCreateSync:
 
     def test_create_sync_raises_on_missing_extension(self):
         mock_engine = MagicMock()
-        mock_engine._run_as_sync = MagicMock(
-            side_effect=RuntimeError("The 'polar_ai' extension is not installed")
+        mock_engine._run_as_sync = run_as_sync_raising(
+            RuntimeError("The 'polar_ai' extension is not installed")
         )
 
         with pytest.raises(RuntimeError, match="polar_ai"):
@@ -100,7 +105,7 @@ class TestPolarDBPGModelManagerOperations:
     def _create_manager_with_mock_engine(self):
         """Helper to create a manager with mocked engine."""
         mock_engine = MagicMock()
-        mock_engine._run_as_sync = MagicMock(return_value=None)
+        mock_engine._run_as_sync = run_as_sync_returning(None)
         mock_engine._run_as_async = AsyncMock(return_value=None)
         manager = PolarDBPGModelManager(
             PolarDBPGModelManager._PolarDBPGModelManager__create_key,
@@ -135,7 +140,7 @@ class TestPolarDBPGModelManagerOperations:
 
     def test_list_models_calls_run_as_sync(self):
         manager, mock_engine = self._create_manager_with_mock_engine()
-        mock_engine._run_as_sync.return_value = []
+        mock_engine._run_as_sync = run_as_sync_returning([])
         result = manager.list_models()
         assert result == []
         mock_engine._run_as_sync.assert_called_once()
@@ -144,7 +149,7 @@ class TestPolarDBPGModelManagerOperations:
         manager, mock_engine = self._create_manager_with_mock_engine()
         # get_model delegates to list_models, which returns a list; an empty
         # list means "not found" so get_model returns None.
-        mock_engine._run_as_sync.return_value = []
+        mock_engine._run_as_sync = run_as_sync_returning([])
         result = manager.get_model(model_id="nonexistent")
         assert result is None
         mock_engine._run_as_sync.assert_called_once()
@@ -277,8 +282,7 @@ class TestPolarDBPGModelManagerCreateModelSQL:
             in sql
         )
         assert (
-            captured["params"]["model_in_transform_fn"]
-            == "polar_ai._in_fn(text,text)"
+            captured["params"]["model_in_transform_fn"] == "polar_ai._in_fn(text,text)"
         )
 
 
@@ -323,9 +327,7 @@ class TestPolarDBPGModelManagerAlterModelSQL:
     @pytest.mark.asyncio
     async def test_returns_boolean_result(self):
         manager, _ = self._make_manager_capturing_sql(result_value=True)
-        result = await manager.aalter_model(
-            model_id="m", model_url="https://new"
-        )
+        result = await manager.aalter_model(model_id="m", model_url="https://new")
         assert result is True
 
     @pytest.mark.asyncio
@@ -368,10 +370,7 @@ class TestPolarDBPGModelManagerAlterModelSQL:
             model_headers_fn="polar_ai._headers_fn(text)",
         )
         sql = captured["query"]
-        assert (
-            "model_headers_fn => CAST(:model_headers_fn AS regprocedure)"
-            in sql
-        )
+        assert "model_headers_fn => CAST(:model_headers_fn AS regprocedure)" in sql
 
 
 class TestPolarDBPGModelManagerSetModelTokenSQL:
@@ -415,9 +414,7 @@ class TestPolarDBPGModelManagerSetModelTokenSQL:
     @pytest.mark.asyncio
     async def test_returns_boolean_result(self):
         manager, _ = self._make_manager_capturing_sql(result_value=True)
-        result = await manager.aset_model_token(
-            model_id="m", model_token="sk-xyz"
-        )
+        result = await manager.aset_model_token(model_id="m", model_token="sk-xyz")
         assert result is True
 
     @pytest.mark.asyncio
@@ -488,9 +485,7 @@ class TestPolarDBPGModelManagerListModelsSQL:
     @pytest.mark.asyncio
     async def test_multiple_filters_combined_with_and(self):
         manager, captured = self._make_manager_capturing_sql()
-        await manager.alist_models(
-            model_provider="Alibaba", model_type="embedding"
-        )
+        await manager.alist_models(model_provider="Alibaba", model_type="embedding")
         sql = captured["query"]
         assert "model_provider = :model_provider" in sql
         assert "model_type = :model_type" in sql
@@ -590,43 +585,31 @@ class TestPolarDBPGModelManagerCallModelSQL:
 
     @pytest.mark.asyncio
     async def test_casts_string_payload_to_text(self):
-        manager, captured = self._make_manager_capturing_sql(
-            result_value={"ok": True}
-        )
+        manager, captured = self._make_manager_capturing_sql(result_value={"ok": True})
         await manager.acall_model("m", "hello")
         sql = captured["query"]
-        assert (
-            "polar_ai.ai_callmodel(:model_id, CAST(:payload AS text))" in sql
-        )
+        assert "polar_ai.ai_callmodel(:model_id, CAST(:payload AS text))" in sql
         assert captured["params"] == {"model_id": "m", "payload": "hello"}
 
     @pytest.mark.asyncio
     async def test_infers_sql_type_from_python_value(self):
         # Each call uses a fresh manager because the mock's per-connection
         # execute counter distinguishes the token lookup from the call query.
-        manager, captured = self._make_manager_capturing_sql(
-            result_value={"ok": True}
-        )
+        manager, captured = self._make_manager_capturing_sql(result_value={"ok": True})
         await manager.acall_model("m", 42)
         assert "CAST(:payload AS bigint)" in captured["query"]
 
-        manager, captured = self._make_manager_capturing_sql(
-            result_value={"ok": True}
-        )
+        manager, captured = self._make_manager_capturing_sql(result_value={"ok": True})
         await manager.acall_model("m", True)
         assert "CAST(:payload AS boolean)" in captured["query"]
 
-        manager, captured = self._make_manager_capturing_sql(
-            result_value={"ok": True}
-        )
+        manager, captured = self._make_manager_capturing_sql(result_value={"ok": True})
         await manager.acall_model("m", 1.5)
         assert "CAST(:payload AS double precision)" in captured["query"]
 
     @pytest.mark.asyncio
     async def test_explicit_payload_type_overrides_inference(self):
-        manager, captured = self._make_manager_capturing_sql(
-            result_value={"ok": True}
-        )
+        manager, captured = self._make_manager_capturing_sql(result_value={"ok": True})
         await manager.acall_model("m", "hi", payload_type="jsonb")
         assert "CAST(:payload AS jsonb)" in captured["query"]
 
@@ -656,9 +639,7 @@ class TestPolarDBPGModelManagerCallModelSQL:
 
     @pytest.mark.asyncio
     async def test_parses_json_string_result(self):
-        manager, _ = self._make_manager_capturing_sql(
-            result_value='{"a": 1}'
-        )
+        manager, _ = self._make_manager_capturing_sql(result_value='{"a": 1}')
         out = await manager.acall_model("m", "hi")
         assert out == {"a": 1}
 

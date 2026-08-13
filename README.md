@@ -123,6 +123,35 @@ engine = PolarDBPGEngine.from_engine(existing_async_engine)
 - PolarDB for PostgreSQL with `polar_ai` extension
 - Dependencies: `langchain-postgres`, `langchain-core`, `sqlalchemy[asyncio]`, `asyncpg`
 
+## Development
+
+Install local development dependencies:
+
+```bash
+python -m pip install -U pip
+python -m pip install -e ".[dev,cloud]"
+```
+
+Run unit tests:
+
+```bash
+make test
+```
+
+Run LangChain standard vector store integration tests with a live PolarDB
+instance:
+
+```bash
+make integration-test
+```
+
+Build and validate distribution metadata:
+
+```bash
+make build
+make check-dist
+```
+
 ## License
 
 [Apache License 2.0](LICENSE)

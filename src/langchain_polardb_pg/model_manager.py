@@ -22,8 +22,9 @@ Provides CRUD operations that map to PolarDB's AI model management SQL functions
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional, Sequence
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.engine.row import RowMapping
@@ -46,11 +47,11 @@ class PolarDBPGModel:
     model_url: str
     model_provider: str
     model_type: str
-    model_name: Optional[str] = None
+    model_name: str | None = None
     model_config: dict[str, Any] = field(default_factory=dict)
-    model_headers_fn: Optional[str] = None
-    model_in_transform_fn: Optional[str] = None
-    model_out_transform_fn: Optional[str] = None
+    model_headers_fn: str | None = None
+    model_in_transform_fn: str | None = None
+    model_out_transform_fn: str | None = None
 
 
 class PolarDBPGModelManager:
@@ -237,9 +238,7 @@ class PolarDBPGModelManager:
         Raises:
             ValueError: If an unknown optional argument name is provided.
         """
-        return await self._engine._run_as_async(
-            self.__aalter_model(model_id, **kwargs)
-        )
+        return await self._engine._run_as_async(self.__aalter_model(model_id, **kwargs))
 
     def alter_model(self, model_id: str, **kwargs: Any) -> bool:
         """Alter an existing AI model via AI_AlterModel (sync).
@@ -294,15 +293,13 @@ class PolarDBPGModelManager:
         Returns:
             The boolean result returned by AI_SetModelToken.
         """
-        return self._engine._run_as_sync(
-            self.__aset_model_token(model_id, model_token)
-        )
+        return self._engine._run_as_sync(self.__aset_model_token(model_id, model_token))
 
     async def acall_model(
         self,
         model_id: str,
         payload: Any,
-        payload_type: Optional[str] = None,
+        payload_type: str | None = None,
     ) -> Any:
         """Invoke an AI model via AI_CallModel.
 
@@ -337,7 +334,7 @@ class PolarDBPGModelManager:
         self,
         model_id: str,
         payload: Any,
-        payload_type: Optional[str] = None,
+        payload_type: str | None = None,
     ) -> Any:
         """Invoke an AI model via AI_CallModel (sync).
 
@@ -350,9 +347,9 @@ class PolarDBPGModelManager:
 
     async def alist_models(
         self,
-        model_id: Optional[str] = None,
-        model_provider: Optional[str] = None,
-        model_type: Optional[str] = None,
+        model_id: str | None = None,
+        model_provider: str | None = None,
+        model_type: str | None = None,
     ) -> list[PolarDBPGModel]:
         """List registered AI models, optionally filtered.
 
@@ -377,9 +374,9 @@ class PolarDBPGModelManager:
 
     def list_models(
         self,
-        model_id: Optional[str] = None,
-        model_provider: Optional[str] = None,
-        model_type: Optional[str] = None,
+        model_id: str | None = None,
+        model_provider: str | None = None,
+        model_type: str | None = None,
     ) -> list[PolarDBPGModel]:
         """List registered AI models, optionally filtered (sync).
 
@@ -389,7 +386,7 @@ class PolarDBPGModelManager:
             self.__alist_models(model_id, model_provider, model_type)
         )
 
-    async def aget_model(self, model_id: str) -> Optional[PolarDBPGModel]:
+    async def aget_model(self, model_id: str) -> PolarDBPGModel | None:
         """Get details of a specific model by its model_id.
 
         Convenience wrapper over alist_models(model_id=...) returning a single
@@ -404,7 +401,7 @@ class PolarDBPGModelManager:
         models = await self.alist_models(model_id=model_id)
         return models[0] if models else None
 
-    def get_model(self, model_id: str) -> Optional[PolarDBPGModel]:
+    def get_model(self, model_id: str) -> PolarDBPGModel | None:
         """Get details of a specific model by its model_id (sync)."""
         models = self.list_models(model_id=model_id)
         return models[0] if models else None
@@ -422,7 +419,7 @@ class PolarDBPGModelManager:
         )
 
     async def __query_db(
-        self, query: str, params: Optional[dict[str, Any]] = None
+        self, query: str, params: dict[str, Any] | None = None
     ) -> Sequence[RowMapping]:
         """Execute a query and return result rows.
 
@@ -488,9 +485,7 @@ class PolarDBPGModelManager:
             params[key] = self.__normalize_arg_value(key, value)
 
         args_str = ", ".join(named_args)
-        query = text(
-            f"SELECT created FROM polar_ai.ai_createmodel({args_str});"
-        )
+        query = text(f"SELECT created FROM polar_ai.ai_createmodel({args_str});")
 
         async with self._engine._pool.connect() as conn:
             result = await conn.execute(query, params)
@@ -532,9 +527,7 @@ class PolarDBPGModelManager:
             params[key] = self.__normalize_arg_value(key, value)
 
         args_str = ", ".join(named_args)
-        query = text(
-            f"SELECT polar_ai.ai_altermodel({args_str}) AS result;"
-        )
+        query = text(f"SELECT polar_ai.ai_altermodel({args_str}) AS result;")
 
         async with self._engine._pool.connect() as conn:
             result = await conn.execute(query, params)
@@ -551,9 +544,7 @@ class PolarDBPGModelManager:
         Returns:
             The boolean result of AI_DropModel.
         """
-        query = text(
-            "SELECT polar_ai.ai_dropmodel(:model_id) AS result;"
-        )
+        query = text("SELECT polar_ai.ai_dropmodel(:model_id) AS result;")
 
         async with self._engine._pool.connect() as conn:
             result = await conn.execute(query, {"model_id": model_id})
@@ -585,7 +576,7 @@ class PolarDBPGModelManager:
 
         return bool(row["result"]) if row is not None else False
 
-    async def __aget_model_token(self, model_id: str) -> Optional[str]:
+    async def __aget_model_token(self, model_id: str) -> str | None:
         """Read a model's token, reusing the unified list query.
 
         The token is not a dedicated column; it is stored inside the jsonb
@@ -603,7 +594,7 @@ class PolarDBPGModelManager:
         self,
         model_id: str,
         payload: Any,
-        payload_type: Optional[str] = None,
+        payload_type: str | None = None,
     ) -> Any:
         """Call a model via AI_CallModel SQL function.
 
@@ -670,9 +661,9 @@ class PolarDBPGModelManager:
 
     async def __alist_models(
         self,
-        model_id: Optional[str] = None,
-        model_provider: Optional[str] = None,
-        model_type: Optional[str] = None,
+        model_id: str | None = None,
+        model_provider: str | None = None,
+        model_type: str | None = None,
     ) -> list[PolarDBPGModel]:
         """List models from polar_ai._ai_models, optionally filtered.
 
@@ -693,9 +684,7 @@ class PolarDBPGModelManager:
                 conditions.append(f"{column} = :{column}")
                 params[column] = value
 
-        where_clause = (
-            f" WHERE {' AND '.join(conditions)}" if conditions else ""
-        )
+        where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
         query = (
             f"SELECT {columns} FROM polar_ai._ai_models"
             f"{where_clause} ORDER BY model_seq;"
@@ -815,6 +804,6 @@ class PolarDBPGModelManager:
         return value
 
     @staticmethod
-    def __stringify_regprocedure(value: Any) -> Optional[str]:
+    def __stringify_regprocedure(value: Any) -> str | None:
         """Render a regprocedure column value as a string, if present."""
         return None if value is None else str(value)

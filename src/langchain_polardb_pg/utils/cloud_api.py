@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -110,8 +109,8 @@ def get_ai_api_key_from_env(env_var: str = AI_API_KEY_ENV_VAR) -> list[str]:
 
 
 def _get_credentials(
-    access_key_id: Optional[str] = None,
-    access_key_secret: Optional[str] = None,
+    access_key_id: str | None = None,
+    access_key_secret: str | None = None,
 ) -> tuple[str, str]:
     """Resolve Alibaba Cloud credentials from arguments or environment variables.
 
@@ -143,9 +142,9 @@ def _get_credentials(
 
 def describe_polardb_cluster_attribute(
     cluster_id: str,
-    access_key_id: Optional[str] = None,
-    access_key_secret: Optional[str] = None,
-    region: Optional[str] = None,
+    access_key_id: str | None = None,
+    access_key_secret: str | None = None,
+    region: str | None = None,
 ) -> PolarDBClusterAttribute:
     """Fetch PolarDB cluster attributes via DescribeDBClusterAttribute.
 
@@ -229,9 +228,9 @@ def describe_polardb_cluster_attribute(
 
 def resolve_polardb_endpoint(
     cluster_id: str,
-    region: Optional[str] = None,
-    access_key_id: Optional[str] = None,
-    access_key_secret: Optional[str] = None,
+    region: str | None = None,
+    access_key_id: str | None = None,
+    access_key_secret: str | None = None,
     endpoint_type: str = "Cluster",
     network_type: str = "Private",
 ) -> PolarDBEndpointInfo:
@@ -321,7 +320,9 @@ def resolve_polardb_endpoint(
         f"networks=[{', '.join(a.get('NetType', '?') for a in item.get('AddressItems', []))}]"
         for item in items
     ]
-    available_info = "\n".join(available_endpoints) if available_endpoints else "  (none)"
+    available_info = (
+        "\n".join(available_endpoints) if available_endpoints else "  (none)"
+    )
     raise ValueError(
         f"No matching endpoint found for cluster '{cluster_id}' with "
         f"endpoint_type='{endpoint_type}' and network_type='{network_type}'.\n"

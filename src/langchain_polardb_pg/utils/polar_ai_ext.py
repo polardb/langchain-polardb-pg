@@ -44,6 +44,4 @@ async def ensure_polar_ai_extension(
     auto_create: bool = False,
 ) -> None:
     """Ensure the polar_ai extension is available, optionally creating it."""
-    await ensure_extension(
-        engine, POLAR_AI_EXTENSION_NAME, auto_create=auto_create
-    )
+    await ensure_extension(engine, POLAR_AI_EXTENSION_NAME, auto_create=auto_create)

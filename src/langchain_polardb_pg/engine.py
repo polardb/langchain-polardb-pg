@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import asyncio
 import os
-from concurrent.futures import Future
+from collections.abc import Mapping
 from threading import Thread
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from langchain_postgres import PGEngine
 from sqlalchemy.engine import URL
@@ -47,10 +47,10 @@ class PolarDBPGEngine(PGEngine):
 
     # Cluster attributes resolved during from_instance(); None for the other
     # constructors where attributes are not fetched from the OpenAPI.
-    _cluster_attribute: Optional[PolarDBClusterAttribute] = None
+    _cluster_attribute: PolarDBClusterAttribute | None = None
 
     @property
-    def cluster_attribute(self) -> Optional[PolarDBClusterAttribute]:
+    def cluster_attribute(self) -> PolarDBClusterAttribute | None:
         """Cached cluster attributes resolved during from_instance().
 
         Returns the PolarDBClusterAttribute captured when the engine was
@@ -106,9 +106,7 @@ class PolarDBPGEngine(PGEngine):
             return list(self._cluster_attribute.api_keys)
         if source == "env":
             return get_ai_api_key_from_env(env_var)
-        raise ValueError(
-            f"Unknown source '{source}'. Expected 'cluster' or 'env'."
-        )
+        raise ValueError(f"Unknown source '{source}'. Expected 'cluster' or 'env'.")
 
     @classmethod
     def _ensure_background_loop(cls) -> None:
@@ -127,9 +125,9 @@ class PolarDBPGEngine(PGEngine):
         database: str,
         user: str,
         password: str,
-        region: Optional[str] = None,
-        access_key_id: Optional[str] = None,
-        access_key_secret: Optional[str] = None,
+        region: str | None = None,
+        access_key_id: str | None = None,
+        access_key_secret: str | None = None,
         endpoint_type: str = "Cluster",
         network_type: str = "Private",
         engine_args: Mapping[str, Any] = {},
@@ -227,8 +225,8 @@ class PolarDBPGEngine(PGEngine):
     def from_engine(
         cls,
         engine: Any,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        cluster_attribute: Optional[PolarDBClusterAttribute] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        cluster_attribute: PolarDBClusterAttribute | None = None,
     ) -> PolarDBPGEngine:
         """Create a PolarDBPGEngine from an existing engine.
 
@@ -253,7 +251,7 @@ class PolarDBPGEngine(PGEngine):
         Returns:
             PolarDBPGEngine instance.
         """
-        inherited_attribute: Optional[PolarDBClusterAttribute] = None
+        inherited_attribute: PolarDBClusterAttribute | None = None
         if isinstance(engine, PolarDBPGEngine):
             inherited_attribute = engine._cluster_attribute
             loop = loop or engine._loop

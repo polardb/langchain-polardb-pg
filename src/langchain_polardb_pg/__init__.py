@@ -24,7 +24,6 @@ from langchain_postgres.v2.hybrid_search_config import (
 from .embeddings import EmbeddingMode, PolarDBPGEmbeddings
 from .engine import PolarDBPGEngine
 from .model_manager import PolarDBPGModel, PolarDBPGModelManager
-from .vectorstores import PolarDBPGVector
 from .utils.extensions import (
     create_extension,
     ensure_extension,
@@ -36,6 +35,7 @@ from .utils.polar_ai_ext import (
     ensure_polar_ai_extension,
     polar_ai_extension_exists,
 )
+from .vectorstores import PolarDBPGVector
 from .version import __version__
 
 __all__ = [

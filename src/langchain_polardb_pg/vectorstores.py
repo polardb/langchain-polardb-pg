@@ -62,4 +62,3 @@ class PolarDBPGVector(PGVectorStore):
     """
 
     _engine: PolarDBPGEngine
-

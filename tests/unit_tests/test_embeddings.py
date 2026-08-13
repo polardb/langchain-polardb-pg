@@ -26,6 +26,7 @@ from langchain_polardb_pg.embeddings import (
     EmbeddingMode,
     PolarDBPGEmbeddings,
 )
+from tests.unit_tests.helpers import run_as_sync_returning
 
 
 def _make_embeddings(
@@ -40,9 +41,7 @@ def _make_embeddings(
     )
 
 
-def _attribute(
-    *, beijing=False, standard=False, enterprise=False, ai_node=False
-):
+def _attribute(*, beijing=False, standard=False, enterprise=False, ai_node=False):
     """Build a cluster attribute stub exposing the resolution properties."""
     attribute = MagicMock()
     attribute.is_beijing_region = beijing
@@ -76,45 +75,35 @@ class TestPolarDBPGEmbeddingsModeResolution:
         engine = MagicMock()
         engine.cluster_attribute = None
         assert (
-            PolarDBPGEmbeddings._resolve_mode(engine)
-            == EmbeddingMode.AI_TEXT_EMBEDDING
+            PolarDBPGEmbeddings._resolve_mode(engine) == EmbeddingMode.AI_TEXT_EMBEDDING
         )
 
     def test_beijing_standard_uses_ai_text_embedding(self):
         engine = MagicMock()
         engine.cluster_attribute = _attribute(beijing=True, standard=True)
         assert (
-            PolarDBPGEmbeddings._resolve_mode(engine)
-            == EmbeddingMode.AI_TEXT_EMBEDDING
+            PolarDBPGEmbeddings._resolve_mode(engine) == EmbeddingMode.AI_TEXT_EMBEDDING
         )
 
     def test_enterprise_with_ai_node_uses_call_model(self):
         engine = MagicMock()
         engine.cluster_attribute = _attribute(enterprise=True, ai_node=True)
-        assert (
-            PolarDBPGEmbeddings._resolve_mode(engine)
-            == EmbeddingMode.CALL_MODEL
-        )
+        assert PolarDBPGEmbeddings._resolve_mode(engine) == EmbeddingMode.CALL_MODEL
 
     def test_enterprise_without_ai_node_falls_back(self):
         engine = MagicMock()
         engine.cluster_attribute = _attribute(enterprise=True, ai_node=False)
         assert (
-            PolarDBPGEmbeddings._resolve_mode(engine)
-            == EmbeddingMode.AI_TEXT_EMBEDDING
+            PolarDBPGEmbeddings._resolve_mode(engine) == EmbeddingMode.AI_TEXT_EMBEDDING
         )
 
     def test_default_model_for_mode(self):
         assert (
-            PolarDBPGEmbeddings._default_model_for_mode(
-                EmbeddingMode.AI_TEXT_EMBEDDING
-            )
+            PolarDBPGEmbeddings._default_model_for_mode(EmbeddingMode.AI_TEXT_EMBEDDING)
             == AI_TEXT_EMBEDDING_DEFAULT_MODEL
         )
         assert (
-            PolarDBPGEmbeddings._default_model_for_mode(
-                EmbeddingMode.CALL_MODEL
-            )
+            PolarDBPGEmbeddings._default_model_for_mode(EmbeddingMode.CALL_MODEL)
             == CALL_MODEL_DEFAULT_MODEL
         )
 
@@ -137,7 +126,7 @@ class TestPolarDBPGEmbeddingsCreateSync:
     def test_create_sync_raises_on_nonexistent_model(self):
         mock_engine = MagicMock()
         mock_engine.cluster_attribute = None
-        mock_engine._run_as_sync = MagicMock(return_value=False)
+        mock_engine._run_as_sync = run_as_sync_returning(None, False)
 
         with pytest.raises(ValueError, match="does not exist"):
             PolarDBPGEmbeddings.create_sync(
@@ -147,7 +136,7 @@ class TestPolarDBPGEmbeddingsCreateSync:
     def test_create_sync_succeeds_with_existing_model(self):
         mock_engine = MagicMock()
         mock_engine.cluster_attribute = None
-        mock_engine._run_as_sync = MagicMock(return_value=True)
+        mock_engine._run_as_sync = run_as_sync_returning(None, True)
 
         embeddings = PolarDBPGEmbeddings.create_sync(
             mock_engine, model_name=DEFAULT_EMBEDDING_MODEL
@@ -158,7 +147,7 @@ class TestPolarDBPGEmbeddingsCreateSync:
     def test_default_model_name_ai_text_embedding(self):
         mock_engine = MagicMock()
         mock_engine.cluster_attribute = _attribute(beijing=True, standard=True)
-        mock_engine._run_as_sync = MagicMock(return_value=True)
+        mock_engine._run_as_sync = run_as_sync_returning(None, True)
 
         embeddings = PolarDBPGEmbeddings.create_sync(mock_engine)
         assert embeddings.model_name == AI_TEXT_EMBEDDING_DEFAULT_MODEL
@@ -166,10 +155,8 @@ class TestPolarDBPGEmbeddingsCreateSync:
 
     def test_default_model_name_call_model(self):
         mock_engine = MagicMock()
-        mock_engine.cluster_attribute = _attribute(
-            enterprise=True, ai_node=True
-        )
-        mock_engine._run_as_sync = MagicMock(return_value=True)
+        mock_engine.cluster_attribute = _attribute(enterprise=True, ai_node=True)
+        mock_engine._run_as_sync = run_as_sync_returning(None, True)
 
         embeddings = PolarDBPGEmbeddings.create_sync(mock_engine)
         assert embeddings.model_name == CALL_MODEL_DEFAULT_MODEL
@@ -264,16 +251,16 @@ class TestPolarDBPGEmbeddingsModelExists:
         embeddings = _make_embeddings(MagicMock(), "my_model")
 
         mock_manager = MagicMock()
-        mock_manager.aget_model = AsyncMock(
-            return_value=self._model_with_token("")
-        )
+        mock_manager.aget_model = AsyncMock(return_value=self._model_with_token(""))
 
-        with patch(
-            "langchain_polardb_pg.embeddings.PolarDBPGModelManager.create",
-            new=AsyncMock(return_value=mock_manager),
+        with (
+            patch(
+                "langchain_polardb_pg.embeddings.PolarDBPGModelManager.create",
+                new=AsyncMock(return_value=mock_manager),
+            ),
+            pytest.raises(ValueError, match="token is empty"),
         ):
-            with pytest.raises(ValueError, match="token is empty"):
-                await embeddings._PolarDBPGEmbeddings__amodel_exists()
+            await embeddings._PolarDBPGEmbeddings__amodel_exists()
 
     @pytest.mark.asyncio
     async def test_model_missing_falls_back_to_builtin_probe(self):
@@ -284,13 +271,16 @@ class TestPolarDBPGEmbeddingsModelExists:
         mock_manager = MagicMock()
         mock_manager.aget_model = AsyncMock(return_value=None)
 
-        with patch(
-            "langchain_polardb_pg.embeddings.PolarDBPGModelManager.create",
-            new=AsyncMock(return_value=mock_manager),
-        ), patch.object(
-            PolarDBPGEmbeddings,
-            "_PolarDBPGEmbeddings__atry_builtin_model",
-            new=AsyncMock(return_value=True),
+        with (
+            patch(
+                "langchain_polardb_pg.embeddings.PolarDBPGModelManager.create",
+                new=AsyncMock(return_value=mock_manager),
+            ),
+            patch.object(
+                PolarDBPGEmbeddings,
+                "_PolarDBPGEmbeddings__atry_builtin_model",
+                new=AsyncMock(return_value=True),
+            ),
         ):
             exists = await embeddings._PolarDBPGEmbeddings__amodel_exists()
 
@@ -322,7 +312,7 @@ class TestPolarDBPGEmbeddingsSync:
 
     def test_embed_query_calls_run_as_sync(self):
         mock_engine = MagicMock()
-        mock_engine._run_as_sync = MagicMock(return_value=[0.1, 0.2, 0.3])
+        mock_engine._run_as_sync = run_as_sync_returning([0.1, 0.2, 0.3])
 
         embeddings = _make_embeddings(mock_engine, "my_model")
         result = embeddings.embed_query("test text")
@@ -331,9 +321,7 @@ class TestPolarDBPGEmbeddingsSync:
 
     def test_embed_documents_calls_run_as_sync(self):
         mock_engine = MagicMock()
-        mock_engine._run_as_sync = MagicMock(
-            return_value=[[0.1, 0.2], [0.3, 0.4]]
-        )
+        mock_engine._run_as_sync = run_as_sync_returning([[0.1, 0.2], [0.3, 0.4]])
 
         embeddings = _make_embeddings(mock_engine, "my_model")
         result = embeddings.embed_documents(["text1", "text2"])
@@ -412,9 +400,7 @@ class TestPolarDBPGEmbeddingsCallModelBody:
         embeddings = _make_embeddings(
             mock_engine, CALL_MODEL_DEFAULT_MODEL, EmbeddingMode.CALL_MODEL
         )
-        vector = await embeddings._PolarDBPGEmbeddings__acall_model_embed(
-            ["hello"]
-        )
+        vector = await embeddings._PolarDBPGEmbeddings__acall_model_embed(["hello"])
 
         assert vector == [0.5, 0.6]
         import json as _json

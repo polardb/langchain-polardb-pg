@@ -38,7 +38,7 @@ from __future__ import annotations
 import json
 import warnings
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.embeddings import Embeddings
 from sqlalchemy import text
@@ -146,8 +146,8 @@ class PolarDBPGEmbeddings(Embeddings):
     async def create(
         cls,
         engine: PolarDBPGEngine,
-        model_name: Optional[str] = None,
-        mode: Optional[EmbeddingMode] = None,
+        model_name: str | None = None,
+        mode: EmbeddingMode | None = None,
         auto_create_extension: bool = False,
         call_model_body_model: str = CALL_MODEL_DEFAULT_BODY_MODEL,
         call_model_dimension: int = CALL_MODEL_DEFAULT_DIMENSION,
@@ -195,9 +195,7 @@ class PolarDBPGEmbeddings(Embeddings):
             call_model_deployment_name,
         )
         await engine._run_as_async(
-            ensure_polar_ai_extension(
-                engine._pool, auto_create=auto_create_extension
-            )
+            ensure_polar_ai_extension(engine._pool, auto_create=auto_create_extension)
         )
         model_exists = await engine._run_as_async(embeddings.__amodel_exists())
         if not model_exists:
@@ -212,8 +210,8 @@ class PolarDBPGEmbeddings(Embeddings):
     def create_sync(
         cls,
         engine: PolarDBPGEngine,
-        model_name: Optional[str] = None,
-        mode: Optional[EmbeddingMode] = None,
+        model_name: str | None = None,
+        mode: EmbeddingMode | None = None,
         auto_create_extension: bool = False,
         call_model_body_model: str = CALL_MODEL_DEFAULT_BODY_MODEL,
         call_model_dimension: int = CALL_MODEL_DEFAULT_DIMENSION,
@@ -244,9 +242,7 @@ class PolarDBPGEmbeddings(Embeddings):
             call_model_deployment_name,
         )
         engine._run_as_sync(
-            ensure_polar_ai_extension(
-                engine._pool, auto_create=auto_create_extension
-            )
+            ensure_polar_ai_extension(engine._pool, auto_create=auto_create_extension)
         )
         model_exists = engine._run_as_sync(embeddings.__amodel_exists())
         if not model_exists:
@@ -498,8 +494,7 @@ class PolarDBPGEmbeddings(Embeddings):
 
         if row is None:
             raise RuntimeError(
-                f"AI_Text_Embedding returned no result for model "
-                f"'{self.model_name}'."
+                f"AI_Text_Embedding returned no result for model '{self.model_name}'."
             )
 
         first_value = next(iter(row.values()))
@@ -559,8 +554,7 @@ class PolarDBPGEmbeddings(Embeddings):
 
         if row is None:
             raise RuntimeError(
-                f"ai_callmodel returned no result for model "
-                f"'{self.model_name}'."
+                f"ai_callmodel returned no result for model '{self.model_name}'."
             )
 
         return self.__parse_call_model_response(row["response"])
@@ -580,9 +574,7 @@ class PolarDBPGEmbeddings(Embeddings):
             if success is not None and str(success).lower() != "true":
                 message = payload.get("errMessage") or payload.get("message")
                 raise RuntimeError(f"Embedding error: {message}")
-            raise RuntimeError(
-                f"Unexpected ai_callmodel response object: {payload!r}."
-            )
+            raise RuntimeError(f"Unexpected ai_callmodel response object: {payload!r}.")
 
         # Handle nested list [[float, ...]] -> unwrap to first element
         if isinstance(payload, list) and payload and isinstance(payload[0], list):

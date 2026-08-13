@@ -88,9 +88,7 @@ async def create_extension(engine: AsyncEngine, extension_name: str) -> None:
     """
     _validate_extension_name(extension_name)
 
-    statement = text(
-        f"CREATE EXTENSION IF NOT EXISTS {extension_name} CASCADE;"
-    )
+    statement = text(f"CREATE EXTENSION IF NOT EXISTS {extension_name} CASCADE;")
     try:
         async with engine.connect() as conn:
             await conn.execute(statement)
