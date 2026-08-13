@@ -97,6 +97,29 @@ make build
 make check-dist
 ```
 
+## Release Process
+
+Releases are published to PyPI with GitHub Actions trusted publishing. Before
+the first release, configure a pending publisher in PyPI with these values:
+
+```text
+PyPI project name: langchain-polardb-pg
+Owner: polardb
+Repository name: langchain-polardb-pg
+Workflow filename: publish.yml
+Environment name: pypi
+```
+
+Then publish by pushing a version tag that matches the package version:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The `Publish to PyPI` workflow builds the source distribution and wheel, checks
+their metadata, and uploads them to PyPI.
+
 ## Pull Request Guidelines
 
 1. **Fork & Branch**: Create a feature branch from `main`.
